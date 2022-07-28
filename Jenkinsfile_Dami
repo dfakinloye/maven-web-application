@@ -1,0 +1,33 @@
+pipeline{
+    agent any
+    tools {maven "maven3.8.6"}
+    
+    stages{
+        stage('cloning'){
+            steps{
+             git 'https://github.com/dfakinloye/maven-web-application'
+            }
+        }
+        stage('test+build'){
+            steps{
+                sh " mvn clean package"
+            }
+        }
+        stage('code quality'){
+            steps{
+                sh " mvn sonar:sonar"
+            }
+        }
+        stage('artifacts upload'){
+            steps{
+                sh " mvn deploy"
+            }
+        }
+        stage('deployment'){
+            steps{
+                deploy adapters: [tomcat9(credentialsId: 'Tomcat9_cred', path: '', url: 'http://3.99.135.22:8080/')], contextPath: 'mariam', war: 'target/*war'
+            }
+        }
+        
+    }
+}
