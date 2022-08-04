@@ -1,33 +1,37 @@
-pipeline{
-    agent any
-    tools {maven "maven3.8.6"}
-    
-    stages{
-        stage('cloning'){
-            steps{
-             git 'https://github.com/dfakinloye/maven-web-application'
-            }
-        }
-        stage('test+build'){
-            steps{
-                sh " mvn clean package"
-            }
-        }
-        stage('code quality'){
-            steps{
-                sh " mvn sonar:sonar"
-            }
-        }
-        stage('artifacts upload'){
-            steps{
-                sh " mvn deploy"
-            }
-        }
-        stage('deployment'){
-            steps{
-                deploy adapters: [tomcat9(credentialsId: 'Tomcat9_cred', path: '', url: 'http://3.99.135.22:8080/')], contextPath: 'mariam', war: 'target/*war'
-            }
-        }
-        
+node{
+    def mavenHome = tool name: 'maven3.8.6'
+    stage('1Codeclone'){
+        sh "echo running a software build and deployment project for payPal"
+        git credentialsId: 'Github_cred', url: 'https://github.com/dfakinloye/maven-web-application'
+        //git "https://github.com/dfakinloye/maven-web-application"
+        //sh "git clone https://github.com/dfakinloye/maven-web-application"
+        //bat "git clone https://github.com/dfakinloye/maven-web-application"
+    }
+    stage('2Test&Build'){
+        sh "${mavenHome}/bin/mvn install"
+    }
+    stage('3CodeQuality'){
+     //sh "${mavenHome}/bin/mvn sonar:sonar"   
+    }
+    stage('4UploadArtifacts'){
+        sh "${mavenHome}/bin/mvn deploy"
+    }
+    stage('5deploy_uat'){
+        deploy adapters: [tomcat9(credentialsId: 'Tomcat9_cred', path: '', url: 'http://3.99.127.159:8080/')], contextPath: 'Paypal_app', war: 'target/*war'
+    }
+    stage('6Approvaldeploy_prod'){
+        /*timeout(time:9, unit:'HOURS'){
+          input message: 'Application ready for deployment, kindly review and approve'
+        } */
+    }
+    stage('7deploy_prod'){
+   deploy adapters: [tomcat9(credentialsId: 'Tomcat9_cred', path: '', url: 'http://3.99.127.159:8080/')], contextPath: 'Paypal_app', war: 'target/*war'
+    }
+    stage('8notification'){
+        emailext body: '''Build status for frontend application.
+
+Regards,
+Damilare A. A.
+''', recipientProviders: [buildUser(), developers(), contributor()], subject: 'Build Status', to: 'dfakinloye@gmail.com'
     }
 }
